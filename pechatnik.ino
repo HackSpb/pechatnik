@@ -1,8 +1,17 @@
 
-
+//вертикальные шаговики
 //swither, pul, dir
-int motor3[] = {A5, 12, 13};
-int motor4[] = {A4, 10 , 11};
+int motor1[] = {A2, 10 , 11};
+int motor2[] = {A3, 10 , 11};
+int motor3[] = {A4, 10 , 11};
+int motor4[] = {A5, 12, 13};
+
+
+int horiz_motor7 = 7;
+int horiz_motor8 = 8;
+int solenoid = 2;
+
+int optocoupler1 = A0;
 
 void initialization(int mot[]){
    pinMode(mot[0], INPUT);
@@ -43,6 +52,18 @@ void parkovka(int motorA[], int motorB[]){
     }
   }
 
+void pechat(int motorA[], int motorB[]){
+    digitalWrite(motorA[2], HIGH);
+    digitalWrite(motorB[2], HIGH);
+    while(i<7000){
+    i++;
+    step(motorA[1]);
+    step(motorB[1]);    
+    //Serial.println(i);
+    }  
+  
+  }  
+
 
 
 
@@ -51,20 +72,32 @@ int i=0;
 
 void setup() {
   initialization(motor3); 
-  initialization(motor4);  
+  initialization(motor4);
+  
+  pinMode(horiz_motor7, OUTPUT);
+  pinMode(horiz_motor8, OUTPUT);
+  pinMode(solenoid, OUTPUT);
+    
   Serial.begin(57600);
   
   parkovka(motor3,motor4);
 
-delay(2000);
-  digitalWrite(motor3[2], HIGH);
-  digitalWrite(motor4[2], HIGH);
-  while(i<11000){
-    i++;
-    step(motor3[1]);
-    step(motor4[1]);    
-    //Serial.println(i);
-    }  
+  delay(2000);
+
+  digitalWrite(solenoid, HIGH);
+  for(int i=0;i<50;i++){
+      step(motor3[1]);
+      step(motor4[1]);
+    }
+  digitalWrite(solenoid, LOW);
+   
+  while(digitalRead(optocoupler1)==LOW){
+      step(motor3[1]);
+      step(motor4[1]);
+    }
+
+    pechat(motor3, motor4);
+
 }
 
 
