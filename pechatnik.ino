@@ -1,24 +1,37 @@
 
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
+
+
+
 //вертикальные шаговики
-//swither, pul, dir
-int motor1[] = {A2, 10 , 11};
-int motor2[] = {A3, 10 , 11};
-int motor3[] = {A4, 10 , 11};
-int motor4[] = {A5, 12, 13};
+//pul, dir, swither, 
+int motor1[] = {10, 11, 12};
+int motor2[] = {23, 24, 25};
+int motor3[] = {30, 31, 32};
+int motor4[] = {40, 41, 42};
 
 
+int horiz_motor5 = 5;
+int horiz_motor6 = 6;
 int horiz_motor7 = 7;
 int horiz_motor8 = 8;
-int solenoid = 2;
+int solenoid = 9;
 
-int optocoupler1 = A0;
+int optocoupler1 = A1;
+int optocoupler2 = A0;//перепутали при пайке
 
-int button2=A1;
+int button1=17;
+int button2=18;
+int button3=19;
 
 void initialization(int mot[]){
-   pinMode(mot[0], INPUT);
+   pinMode(mot[0], OUTPUT);
    pinMode(mot[1], OUTPUT);
-   pinMode(mot[2], OUTPUT);
+   pinMode(mot[2], INPUT);
 
 }
 
@@ -27,7 +40,7 @@ void step(int pin){
   digitalWrite(pin, HIGH);   
   delay(2);                   
   digitalWrite(pin, LOW);    
-  delay(2);
+  //delay(2);
   Serial.println(pin);
     
   }
@@ -35,10 +48,10 @@ void step(int pin){
 
 void speedstep(int pin){
   digitalWrite(pin, HIGH);   
-  delayMicroseconds(100);                   
+  delayMicroseconds(75);                   
   digitalWrite(pin, LOW);    
-  delayMicroseconds(100);
-  //Serial.println(pin);
+ // delayMicroseconds(75);
+ // Serial.println(pin);
     
   }
 void parkovka(int motorA[], int motorB[]){
@@ -47,17 +60,19 @@ void parkovka(int motorA[], int motorB[]){
   amountA=0,
   amountB=0;
   while(back_motorA>0 | back_motorB>0){
-    if(back_motorA>0){speedstep(motorA[1]);}
-    if(back_motorB>0){speedstep(motorB[1]);}
+    if(back_motorA>0){speedstep(motorA[0]);}
+    if(back_motorB>0){speedstep(motorB[0]);}
     
-    if(digitalRead(motorA[0])==LOW){
+    if(digitalRead(motorA[2])==LOW){
+      Serial.print(motorA[2]);
         Serial.println("LOW A");
-        digitalWrite(motorA[2], HIGH);
+        digitalWrite(motorA[1], HIGH);
         amountA=-1;
       }
-    if(digitalRead(motorB[0])==LOW){
+    if(digitalRead(motorB[2])==LOW){
+      Serial.print(motorB[2]);
         Serial.println("LOW B");
-        digitalWrite(motorB[2], HIGH);
+        digitalWrite(motorB[1], HIGH);
         amountB=-1;
       }
       back_motorA = back_motorA+amountA;
@@ -65,67 +80,268 @@ void parkovka(int motorA[], int motorB[]){
     }
   }
 
+void Parralel_parkovka(int motorA[], int motorB[]){
+  int back_motorA=200,
+  back_motorB=200,
+  amountA=0,
+  amountB=0;
+  while(back_motorA>0 | back_motorB>0){
+    if(back_motorA>0){speedstep(motorA[0]);}
+    if(back_motorB>0){speedstep(motorB[0]);}
+    
+    if(digitalRead(motorA[2])==LOW){
+      Serial.print(motorA[2]);
+        Serial.println("LOW A");
+        digitalWrite(motorA[1], HIGH);
+        amountA=-1;
+      }
+    if(digitalRead(motorB[2])==LOW){
+      Serial.print(motorB[2]);
+        Serial.println("LOW B");
+        digitalWrite(motorB[1], HIGH);
+        amountB=-1;
+      }
+      back_motorA = back_motorA+amountA;
+      back_motorB = back_motorB+amountB;
+    }
+  }
+
+
 void pechat(int motorA[], int motorB[]){
     int i=0;
-    digitalWrite(motorA[2], HIGH);
-    digitalWrite(motorB[2], HIGH);
+    digitalWrite(motorA[1], HIGH);
+    digitalWrite(motorB[1], HIGH);
     while(i<7000){
     i++;
-    step(motorA[1]);
-    step(motorB[1]);    
-    Serial.println(i);
+    speedstep(motorA[0]);
+    speedstep(motorB[0]);    
+    //Serial.println(i);
     }  
+    digitalWrite(motorA[1], LOW);
+    digitalWrite(motorB[1], LOW);
+    i=0;
+    while(i<600){
+      i++;
+      speedstep(motorA[0]);
+      speedstep(motorB[0]);    
+    //Serial.println(i);
+    }  
+}  
+
+
+
+void interruptMenu(){
   
-  }  
-
-
-
+  
+  
+  }
 
 
 
 
 void setup() {
+  lcd.init();    
+  lcd.backlight();
+  lcd.setCursor(3,0);
+  lcd.print("starting!");
+  
+  initialization(motor1);
+  initialization(motor2);
   initialization(motor3); 
   initialization(motor4);
   
+  pinMode(horiz_motor5, OUTPUT);
+  pinMode(horiz_motor6, OUTPUT);
   pinMode(horiz_motor7, OUTPUT);
   pinMode(horiz_motor8, OUTPUT);
   pinMode(solenoid, OUTPUT);
     
-  Serial.begin(57600);
+  Serial.begin(9600);
 
 
   while(digitalRead(button2)==LOW){
     delay(100);
     Serial.println("stop");
     }
+
+        lcd.setCursor(0,0);
+      lcd.print("parkovka       ");
     Serial.println("start");
     
-  parkovka(motor3,motor4);
-
-  delay(2000);
-Serial.println("start zahvat stranitci");
-    
+  //parkovka(motor1,motor2);
+/*
+  //delay(2000);
+  Serial.println("give paper");
+    lcd.setCursor(0,0);
+      lcd.print("give paper      ");
   digitalWrite(solenoid, HIGH);
-  for(int i=0;i<50;i++){
-      step(motor3[1]);
-      step(motor4[1]);
-    }
-  digitalWrite(solenoid, LOW);
-   Serial.println("dovod do optopari");
-    
-  while(digitalRead(optocoupler1)==HIGH){
+  for(int i=0;i<75;i++){
       step(horiz_motor7);
       step(horiz_motor8);
     }
-   Serial.println("pechat");
+  digitalWrite(solenoid, LOW);
+
+   
+   
+   Serial.println("dovod do optopari 1");
+        lcd.setCursor(0,0);
+      lcd.print("go to 1 pos.       ");
+  
+            int back_motor1=200, back_motor2=200, back_motor3=200, back_motor4=200,
+                amount1=0, amount2=0, amount3=0, amount4=0;
+   
+  while(digitalRead(optocoupler1)==HIGH){
+      step(horiz_motor6);
+      step(horiz_motor7);
+      step(horiz_motor8);
+                
+                if(back_motor1>0){speedstep(motor1[0]);}
+                if(back_motor2>0){speedstep(motor2[0]);}
+                if(back_motor3>0){speedstep(motor3[0]);}
+                if(back_motor4>0){speedstep(motor4[0]);}
+                
+                if(digitalRead(motor1[2])==LOW){
+                  Serial.print(motor1[2]);
+                    Serial.println("LOW A");
+                    digitalWrite(motor1[1], HIGH);
+                    amount1=-1;
+                  }
+                if(digitalRead(motor2[2])==LOW){
+                  Serial.print(motor2[2]);
+                    Serial.println("LOW B");
+                    digitalWrite(motor2[1], HIGH);
+                    amount2=-1;
+                  }                
+                if(digitalRead(motor3[2])==LOW){
+                  Serial.print(motor3[2]);
+                    Serial.println("LOW C");
+                    digitalWrite(motor3[1], HIGH);
+                    amount3=-1;
+                  }
+                if(digitalRead(motor4[2])==LOW){
+                  Serial.print(motor4[2]);
+                    Serial.println("LOW D");
+                    digitalWrite(motor4[1], HIGH);
+                    amount4=-1;
+                  }
+                  back_motor1 = back_motor2+amount2;
+                  back_motor2 = back_motor2+amount2;  
+                  back_motor3 = back_motor3+amount3;
+                  back_motor4 = back_motor4+amount4;  
+                }
+   Serial.println("pechat 1");
+       lcd.setCursor(0,0);
+      lcd.print("pechat 1      ");
     pechat(motor3, motor4);
 
+   Serial.println("dovod do optopari 2");
+        lcd.setCursor(0,0);
+      lcd.print("go to 2 pos.       ");
+
+          
+  while(digitalRead(optocoupler2)==HIGH){
+      step(horiz_motor5);
+      step(horiz_motor6);
+      step(horiz_motor7);
+  }
+
+   Serial.println("pechat 2");
+       lcd.setCursor(0,0);
+      lcd.print("pechat 2      ");
+    pechat(motor1, motor2);
+    */
+  
 }
 
+int flagPechat1 = 0;
+int flagPechat2 = 0;
 
 
+   int back_motor1=200, back_motor2=200, back_motor3=200, back_motor4=200,
+                amount1=0, amount2=0, amount3=0, amount4=0;
 void loop() {
 
-  while(1){};  
+ 
+  Serial.println("give paper");
+    lcd.setCursor(0,0);
+      lcd.print("give paper      ");
+  digitalWrite(solenoid, HIGH);
+  for(int i=0;i<75;i++){
+      step(horiz_motor7);
+      step(horiz_motor8);
+    }
+  digitalWrite(solenoid, LOW);
+
+   
+   
+   Serial.println("dovod do optopari 1");
+        lcd.setCursor(0,0);
+      lcd.print("go to 1 pos.       ");
+  
+      back_motor1=200, back_motor2=200, back_motor3=200, back_motor4=200,
+                amount1=0, amount2=0, amount3=0, amount4=0;
+   
+  while(digitalRead(optocoupler1)==HIGH || (digitalRead(optocoupler1)==LOW  && digitalRead(optocoupler2)==LOW ) || (amount1==0 || amount2==0 || amount3==0 || amount4==0)  ){
+      if( digitalRead(optocoupler2)==LOW ) step(horiz_motor5);
+
+        step(horiz_motor6);
+        step(horiz_motor7);
+        step(horiz_motor8);
+      
+                
+                if(back_motor1>0){speedstep(motor1[0]);}
+                if(back_motor2>0){speedstep(motor2[0]);}
+                if(back_motor3>0){speedstep(motor3[0]);}
+                if(back_motor4>0){speedstep(motor4[0]);}
+                
+                if(digitalRead(motor1[2])==LOW){
+                  Serial.print(motor1[2]);
+                    Serial.println("LOW A");
+                    digitalWrite(motor1[1], HIGH);
+                    amount1=-1;
+                  }
+                if(digitalRead(motor2[2])==LOW){
+                  Serial.print(motor2[2]);
+                    Serial.println("LOW B");
+                    digitalWrite(motor2[1], HIGH);
+                    amount2=-1;
+                  }                
+                if(digitalRead(motor3[2])==LOW){
+                  Serial.print(motor3[2]);
+                    Serial.println("LOW C");
+                    digitalWrite(motor3[1], HIGH);
+                    amount3=-1;
+                  }
+                if(digitalRead(motor4[2])==LOW){
+                  Serial.print(motor4[2]);
+                    Serial.println("LOW D");
+                    digitalWrite(motor4[1], HIGH);
+                    amount4=-1;
+                  }
+                  back_motor1 = back_motor2+amount2;
+                  back_motor2 = back_motor2+amount2;  
+                  back_motor3 = back_motor3+amount3;
+                  back_motor4 = back_motor4+amount4;  
+                }
+   Serial.println("pechat 1");
+       lcd.setCursor(0,0);
+      lcd.print("pechat 1      ");
+    pechat(motor3, motor4);
+
+   Serial.println("dovod do optopari 2");
+        lcd.setCursor(0,0);
+      lcd.print("go to 2 pos.       ");
+
+          
+  while(digitalRead(optocoupler2)==HIGH){
+      step(horiz_motor5);
+      step(horiz_motor6);
+      step(horiz_motor7);
+  }
+
+   Serial.println("pechat 2");
+       lcd.setCursor(0,0);
+      lcd.print("pechat 2      ");
+    pechat(motor1, motor2);
+
 }
