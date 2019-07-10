@@ -38,10 +38,10 @@ void initialization(int mot[]){
 
 void step(int pin){
   digitalWrite(pin, HIGH);   
-  delay(2);                   
+   delayMicroseconds(1800);                    
   digitalWrite(pin, LOW);    
   //delay(2);
-  Serial.println(pin);
+  //Serial.println(pin);
     
   }
 
@@ -119,20 +119,28 @@ void pechat(int motorA[], int motorB[]){
     }  
     digitalWrite(motorA[1], LOW);
     digitalWrite(motorB[1], LOW);
+    delay(2);
+     lcd.setCursor(3,0);
+  lcd.print("BACK              ");
     i=0;
-    while(i<600){
+    while(i<2000){
       i++;
       speedstep(motorA[0]);
       speedstep(motorB[0]);    
     //Serial.println(i);
     }  
+    
 }  
 
 
 
 void interruptMenu(){
-  
-  
+  int state = digitalRead(button3); 
+    lcd.setCursor(3,0);
+  lcd.print("STOP!              ");
+  while(digitalRead(button3)==state){
+    1;
+    }
   
   }
 
@@ -144,7 +152,7 @@ void setup() {
   lcd.backlight();
   lcd.setCursor(3,0);
   lcd.print("starting!");
-  
+ // attachInterrupt(digitalPinToInterrupt(button3), interruptMenu, CHANGE);
   initialization(motor1);
   initialization(motor2);
   initialization(motor3); 
@@ -159,13 +167,13 @@ void setup() {
   Serial.begin(9600);
 
 
-  while(digitalRead(button2)==LOW){
+  while(digitalRead(button1)==LOW){
     delay(100);
     Serial.println("stop");
     }
 
         lcd.setCursor(0,0);
-      lcd.print("parkovka       ");
+      lcd.print("start       ");
     Serial.println("start");
     
   //parkovka(motor1,motor2);
@@ -253,12 +261,10 @@ void setup() {
   
 }
 
-int flagPechat1 = 0;
-int flagPechat2 = 0;
 
 
    int back_motor1=200, back_motor2=200, back_motor3=200, back_motor4=200,
-                amount1=0, amount2=0, amount3=0, amount4=0;
+                amount1=0, amount2=0, amount3=0, amount4=0, povtor;
 void loop() {
 
  
@@ -279,46 +285,67 @@ void loop() {
       lcd.print("go to 1 pos.       ");
   
       back_motor1=200, back_motor2=200, back_motor3=200, back_motor4=200,
-                amount1=0, amount2=0, amount3=0, amount4=0;
-   
-  while(digitalRead(optocoupler1)==HIGH || (digitalRead(optocoupler1)==LOW  && digitalRead(optocoupler2)==LOW ) || (amount1==0 || amount2==0 || amount3==0 || amount4==0)  ){
-      if( digitalRead(optocoupler2)==LOW ) step(horiz_motor5);
+      amount1=0, amount2=0, amount3=0, amount4=0,
+      povtor=11500; //повтор захвата 3300 для первого?
+                
+   digitalWrite(motor1[1], LOW);
+   digitalWrite(motor2[1], LOW);
+   digitalWrite(motor3[1], LOW);
+   digitalWrite(motor4[1], LOW);
+  while(digitalRead(optocoupler1)==HIGH || (digitalRead(optocoupler1)==LOW  && digitalRead(optocoupler2)==LOW ) || (back_motor1>0 || back_motor2>0 || back_motor3>0 || back_motor4>0)  ){
+      if( digitalRead(optocoupler2)==LOW ) {
+        step(horiz_motor5);
+      }  
+      if(digitalRead(optocoupler1)==LOW  && digitalRead(optocoupler2)==LOW ) {
+        step(horiz_motor6);
+      }
 
+       if( digitalRead(optocoupler1)==HIGH ){
         step(horiz_motor6);
         step(horiz_motor7);
         step(horiz_motor8);
-      
+        povtor--;
+        }
+      if(povtor<0){
+              povtor=11500;
+              digitalWrite(solenoid, HIGH);
+              for(int i=0;i<75;i++){
+                  step(horiz_motor7);
+                  step(horiz_motor8);
+                }
+              digitalWrite(solenoid, LOW);
+        }
                 
-                if(back_motor1>0){speedstep(motor1[0]);}
-                if(back_motor2>0){speedstep(motor2[0]);}
-                if(back_motor3>0){speedstep(motor3[0]);}
-                if(back_motor4>0){speedstep(motor4[0]);}
+                if(back_motor1>0){speedstep(motor1[0]);speedstep(motor1[0]);}
+                if(back_motor2>0){speedstep(motor2[0]);speedstep(motor2[0]);}
+                if(back_motor3>0){speedstep(motor3[0]);speedstep(motor3[0]);}
+                if(back_motor4>0){speedstep(motor4[0]);speedstep(motor4[0]);}
                 
                 if(digitalRead(motor1[2])==LOW){
-                  Serial.print(motor1[2]);
-                    Serial.println("LOW A");
+                  
+                    //Serial.println("LOW 2");
                     digitalWrite(motor1[1], HIGH);
                     amount1=-1;
                   }
                 if(digitalRead(motor2[2])==LOW){
-                  Serial.print(motor2[2]);
-                    Serial.println("LOW B");
+                  
+                    ///Serial.println("LOW 2");
                     digitalWrite(motor2[1], HIGH);
                     amount2=-1;
                   }                
                 if(digitalRead(motor3[2])==LOW){
-                  Serial.print(motor3[2]);
-                    Serial.println("LOW C");
+                 
+                    Serial.println("LOW 3");
                     digitalWrite(motor3[1], HIGH);
                     amount3=-1;
                   }
                 if(digitalRead(motor4[2])==LOW){
-                  Serial.print(motor4[2]);
-                    Serial.println("LOW D");
+                  
+                    Serial.println("LOW 4");
                     digitalWrite(motor4[1], HIGH);
                     amount4=-1;
                   }
-                  back_motor1 = back_motor2+amount2;
+                  back_motor1 = back_motor1+amount1;
                   back_motor2 = back_motor2+amount2;  
                   back_motor3 = back_motor3+amount3;
                   back_motor4 = back_motor4+amount4;  
